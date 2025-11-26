@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Record Your Voice</title>
+</head>
+<body>
+
+<h2>Record Your Voice</h2>
+<button id="recordButton">Start / Stop</button>
+<p id="status">Press the button to start recording</p>
+
+<script>
+    let mediaRecorder;
+    let audioChunks = [];
+
+    document.getElementById('recordButton').addEventListener('click', async () => {
+        if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'recording.wav');
+
+                await fetch('https://your-laravel-backend-url/upload-audio', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                document.getElementById('status').innerText = 'Saved to DB ✔️';
+                audioChunks = [];
+            };
+
+            mediaRecorder.start();
+            document.getElementById('status').innerText = 'Recording... press again to stop.';
+        } else {
+            mediaRecorder.stop();
+        }
+    });
+</script>
+
+</body>
+</html>
